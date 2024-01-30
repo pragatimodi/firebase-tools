@@ -1,5 +1,3 @@
-type Primitive = string | number | boolean | Function;
-
 /**
  * Assert that one implementation conforms to another in a static type assertion.
  * This is useful because unlike trying to cast a value from one type
@@ -11,6 +9,7 @@ type Primitive = string | number | boolean | Function;
 export type Implements<Test, MaybeBase> = Test extends MaybeBase ? true : never;
 
 /** Used to statically check that a type extends another */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-function
 export function assertImplements<Test extends MaybeBase, MaybeBase>(): void {}
 
 /**
