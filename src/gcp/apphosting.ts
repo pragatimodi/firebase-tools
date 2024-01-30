@@ -3,7 +3,7 @@ import { Client } from "../apiv2";
 import { needProjectId } from "../projectUtils";
 import { apphostingOrigin } from "../api";
 import { ensure } from "../ensureApiEnabled";
-import { Cat, DeepOmit, RecursiveKeyOf, assertImplements } from "../metaprogramming";
+import { DeepOmit, RecursiveKeyOf, assertImplements } from "../metaprogramming";
 
 export const API_HOST = new URL(apphostingOrigin).host;
 export const API_VERSION = "v1alpha";

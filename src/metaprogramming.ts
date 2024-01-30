@@ -78,11 +78,11 @@ type TailsOf<T extends string, Head extends string> = [
 ][number];
 
 type RequiredFields<T> = {
-  [K in keyof T as {} extends Pick<T, K> ? never : K]: T[K];
+  [K in keyof T as object extends Pick<T, K> ? never : K]: T[K];
 };
 
 type OptionalFields<T> = {
-  [K in keyof T as {} extends Pick<T, K> ? K : never]?: T[K];
+  [K in keyof T as object extends Pick<T, K> ? K : never]?: T[K];
 };
 
 /**
