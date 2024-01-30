@@ -299,8 +299,8 @@ export async function deleteBackend(
   location: string,
   backendId: string,
 ): Promise<Operation> {
-  const name = `projects/${projectId}/locations/${location}/backends/${backendId}`;
-  const res = await client.delete<Operation>(name, { queryParams: { force: "true" } });
+  const name = `projects/${projectId}/locations/${location}/backends/${backendId}?force=true`;
+  const res = await client.delete<Operation>(name);
 
   return res.body;
 }
@@ -378,14 +378,7 @@ export async function updateTraffic(
   backendId: string,
   traffic: DeepOmit<Traffic, TrafficOutputOnlyFields | "name">,
 ): Promise<Operation> {
-  // BUG(b/322891558): setting deep fields on rolloutPolicy doesn't work for some
-  // reason. Create a copy without deep fields to force the updateMask to be
-  // correct.
-  const trafficCopy = { ...traffic };
-  if ("rolloutPolicy" in traffic) {
-    trafficCopy.rolloutPolicy = {} as any;
-  }
-  const fieldMasks = proto.fieldMasks(trafficCopy);
+  const fieldMasks = proto.fieldMasks(traffic);
   const queryParams = {
     updateMask: fieldMasks.join(","),
   };
