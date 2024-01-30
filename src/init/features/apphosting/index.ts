@@ -9,7 +9,6 @@ import {
   BackendOutputOnlyFields,
   API_VERSION,
   Build,
-  BuildInput,
   Rollout,
 } from "../../../gcp/apphosting";
 import { Repository } from "../../../gcp/cloudbuild";
@@ -17,6 +16,7 @@ import { FirebaseError } from "../../../error";
 import { promptOnce } from "../../../prompt";
 import { DEFAULT_REGION } from "./constants";
 import { ensure } from "../../../ensureApiEnabled";
+import { DeepOmit } from "../../../metaprogramming";
 
 const apphostingPollerOptions: Omit<poller.OperationPollerOptions, "operationResourceName"> = {
   apiOrigin: apphostingOrigin,
@@ -179,7 +179,7 @@ export async function onboardRollout(
   projectId: string,
   location: string,
   backendId: string,
-  buildInput: Omit<BuildInput, "name">,
+  buildInput: DeepOmit<Build, apphosting.BuildOutputOnlyFields | "name">,
 ): Promise<{ rollout: Rollout; build: Build }> {
   logBullet("Starting a new rollout... this may take a few minutes.");
   const buildId = generateId();

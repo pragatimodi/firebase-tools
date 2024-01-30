@@ -10,6 +10,9 @@ type Primitive = string | number | boolean | Function;
  */
 export type Implements<Test, MaybeBase> = Test extends MaybeBase ? true : never;
 
+/** Used to statically check that a type extends another */
+export function assertImplements<Test extends MaybeBase, MaybeBase>(): void {}
+
 /**
  * Creates a type that requires at least one key to be present in an interface
  * type. For example, RequireAtLeastOne<{ foo: string; bar: string }> can hold
@@ -25,19 +28,27 @@ export type RequireAtLeastOne<T> = {
  * For a given object: {a: {b: {c: number}}, d } the RecursiveKeysOf are
  * 'a' | 'a.b' | 'a.b.c' | 'd'
  */
-export type RecursiveKeyOf<T> = T extends Primitive
-  ? never
-  :
-      | (keyof T & string)
-      | {
-          [P in keyof T & string]: RecursiveSubKeys<T, P>;
-        }[keyof T & string];
-
-type RecursiveSubKeys<T, P extends keyof T & string> = T[P] extends (infer Elem)[]
-  ? `${P}.${RecursiveKeyOf<Elem>}`
-  : T[P] extends object
-    ? `${P}.${RecursiveKeyOf<T[P]>}`
+export type RecursiveKeyOf<T, Prefix extends string = ""> = T extends (infer A)[]
+  ? RecursiveKeyOf<A, Prefix>
+  : T extends object
+    ? {
+        [K in keyof T]-?: K extends string
+          ?
+              | `${Prefix}${Prefix extends "" ? "" : "."}${K}`
+              | RecursiveKeyOf<T[K], `${Prefix}${Prefix extends "" ? "" : "."}${K}`>
+          : never;
+      }[keyof T]
     : never;
+
+export type DeepExtract<RecursiveKeys extends string, Select extends string> = [
+  RecursiveKeys extends `${infer Head}.${infer Rest}`
+    ? Head extends Select
+      ? Head
+      : DeepExtract<TailsOf<RecursiveKeys, Head>, Rest>
+    : Extract<RecursiveKeys, Select>,
+][number];
+
+export type Cat<Head extends string, Tail extends string> = `${Head}.${Tail}`;
 
 /**
  * LeafKeysOf is like RecursiveKeysOf but omits the keys for any object.
@@ -67,23 +78,37 @@ type TailsOf<T extends string, Head extends string> = [
   T extends `${Head}.${infer Tail}` ? Tail : never,
 ][number];
 
+type RequiredFields<T> = {
+  [K in keyof T as {} extends Pick<T, K> ? never : K]: T[K];
+};
+
+type OptionalFields<T> = {
+  [K in keyof T as {} extends Pick<T, K> ? K : never]?: T[K];
+};
+
 /**
  * DeepOmit allows you to omit fields from a nested structure using recursive keys.
  */
 export type DeepOmit<T extends object, Keys extends RecursiveKeyOf<T>> = DeepOmitUnsafe<T, Keys>;
 
 type DeepOmitUnsafe<T, Keys extends string> = {
-  [Key in Exclude<keyof T, Keys>]: Key extends Keys
-    ? T[Key] | undefined
-    : Key extends HeadOf<Keys>
-      ? DeepOmitUnsafe<T[Key], TailsOf<Keys, Key>>
-      : T[Key];
+  [Key in Exclude<keyof RequiredFields<T>, Keys>]: Key extends HeadOf<Keys>
+    ? DeepOmitUnsafe<T[Key], TailsOf<Keys, Key>>
+    : T[Key];
+} & {
+  [Key in Exclude<keyof OptionalFields<T>, Keys>]?: Key extends HeadOf<Keys>
+    ? DeepOmitUnsafe<T[Key], TailsOf<Keys, Key>>
+    : T[Key];
 };
 
 export type DeepPick<T extends object, Keys extends RecursiveKeyOf<T>> = DeepPickUnsafe<T, Keys>;
 
 type DeepPickUnsafe<T, Keys extends string> = {
-  [Key in Extract<keyof T, HeadOf<Keys>>]: Key extends Keys
+  [Key in Extract<keyof RequiredFields<T>, HeadOf<Keys>>]: Key extends Keys
+    ? T[Key]
+    : DeepPickUnsafe<T[Key], TailsOf<Keys, Key>>;
+} & {
+  [Key in Extract<keyof OptionalFields<T>, HeadOf<Keys>>]?: Key extends Keys
     ? T[Key]
     : DeepPickUnsafe<T[Key], TailsOf<Keys, Key>>;
 };
@@ -100,9 +125,7 @@ type DeepPickUnsafe<T, Keys extends string> = {
  * type Bar = RequireKeys<Foo, "a" | "b">
  * // Property "a" and "b" are now required.
  */
-export type RequireKeys<T extends object, Keys extends keyof T> = T & {
-  [Key in Keys]: T[Key];
-};
+export type RequireKeys<T extends object, Keys extends keyof T> = T & Required<Pick<T, Keys>>;
 
 /** In the array LeafElems<[[["a"], "b"], ["c"]]> is "a" | "b" | "c" */
 export type LeafElems<T> =
